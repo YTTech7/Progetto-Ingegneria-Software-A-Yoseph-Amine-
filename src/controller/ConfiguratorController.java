@@ -177,6 +177,13 @@ public class ConfiguratorController {
         
         List<model.BaseField> fields = new ArrayList<>();
         
+        ui.printSection("HINT per la creazione dei campi base");
+        ui.printInfo("Titolo - (Testo) - (Obbligatorio)");
+        ui.printInfo("Descrizione - (Testo) - (Obbligatorio)");
+        ui.printInfo("Data Inizio - (Data) - (Obbligatorio)");
+        ui.printInfo("Data Fine - (Data) - (Obbligatorio)");
+        ui.printInfo("Luogo - (Testo) - (Obbligatorio)");
+        
         ui.printSection("Inserisci i campi base uno per uno");
         ui.printInfo("Premi invio senza scrivere nulla per terminare l'inserimento.");
         
@@ -243,9 +250,6 @@ public class ConfiguratorController {
     }
     
     
-    
-    
-
     // ================================================================
     // COMMON FIELDS  (UC-04, 05, 06) — invariati
     // ================================================================
