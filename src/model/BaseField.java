@@ -1,32 +1,52 @@
 package model;
 
 /**
- * Represents a base field. Base fields are mandatory, shared by all categories,
- * and immutable after creation (name, type and mandatory status cannot be changed).
+ * Rappresenta un campo base. I campi base sono comuni a tutte le categorie
+ * e immutabili dopo la creazione (nome, tipo e obbligatorietà non modificabili).
  *
- * Invariant: always mandatory (mandatory == true)
+ * Dalla specifica: i campi base sono definiti nella sezione GENERALITÀ
+ * e alcuni sono obbligatori, altri facoltativi (es. Ora, Quota individuale,
+ * Data conclusiva sono facoltativi).
+ *
+ * CORREZIONE: aggiunto costruttore a 3 parametri per permettere di specificare
+ * l'obbligatorietà, visto che non tutti i campi base sono obbligatori.
  */
 public class BaseField extends Field {
 
     private static final long serialVersionUID = 1L;
 
     /**
-     * @param name  field name
-     * @param type  field data type
-     * @pre name != null && !name.isBlank()
-     * @pre type != null
+     * Costruttore con obbligatorietà esplicita.
+     * Usato da ConfigurationService per creare i campi base con il corretto
+     * valore di mandatory per ciascuno.
+     *
+     * @param name      nome del campo
+     * @param type      tipo di dato
+     * @param mandatory true se obbligatorio, false se facoltativo
      */
-    public BaseField(String name, FieldType type) {
-        super(name, type, true); // base fields are always mandatory
+    public BaseField(String name, FieldType type, boolean mandatory) {
+        super(name, type, mandatory);
     }
 
     /**
-     * Base fields cannot change their mandatory status.
-     * @throws UnsupportedOperationException always
+     * Costruttore legacy che forza mandatory=true.
+     * Mantenuto per compatibilità — i campi base storicamente erano tutti obbligatori.
+     *
+     * @param name nome del campo
+     * @param type tipo di dato
+     */
+    public BaseField(String name, FieldType type) {
+        super(name, type, true);
+    }
+
+    /**
+     * I campi base non possono cambiare la loro obbligatorietà dopo la creazione.
+     * @throws UnsupportedOperationException sempre
      */
     @Override
     public void setMandatory(boolean mandatory) {
-        throw new UnsupportedOperationException("I campi base sono sempre obbligatori e immutabili.");
+        throw new UnsupportedOperationException(
+            "I campi base sono immutabili: l'obbligatorietà non può essere modificata.");
     }
 
     @Override

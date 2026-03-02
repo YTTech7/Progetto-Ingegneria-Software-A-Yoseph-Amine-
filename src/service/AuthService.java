@@ -8,11 +8,12 @@ import model.Configurator;
 /**
  * AuthService — owns all authentication and registration business rules.
  *
- * Responsibilities:
- *  - first-time login with default credentials
- *  - registration of personal credentials
- *  - authentication of subsequent logins
- *  - username uniqueness enforcement
+ * CORREZIONE V2:
+ *   createPendingConfigurator() non è più vincolato a isFirstEverLaunch().
+ *   Le credenziali predefinite servono ogni volta che si vuole aggiungere
+ *   un nuovo configuratore al gruppo, non solo al primissimo avvio.
+ *   Questo rispetta la specifica: "comunicate a ciascun nuovo configuratore
+ *   autorizzato a registrarsi".
  *
  * Invariant: state != null
  */
@@ -20,12 +21,9 @@ public class AuthService {
 
     private final ApplicationState state;
 
-    /**
-     * @param state the application state (non-null)
-     * @pre state != null
-     */
+    /** @pre state != null */
     public AuthService(ApplicationState state) {
-        assert state != null : "AuthService requires a non-null ApplicationState";
+        assert state != null;
         this.state = state;
     }
 
@@ -34,15 +32,16 @@ public class AuthService {
     // ----------------------------------------------------------------
 
     /**
-     * @return true if no configurator has been registered yet
-     *         (i.e. the application is running for the very first time)
+     * @return true se non esiste ancora nessun configuratore registrato.
+     *         Usato solo per mostrare il messaggio di benvenuto al primo avvio.
+     *         NON usato per decidere se accettare le credenziali predefinite.
      */
     public boolean isFirstEverLaunch() {
         return state.getConfigurators().isEmpty();
     }
 
     /**
-     * Checks whether the supplied pair matches the system-wide default credentials.
+     * Controlla se le credenziali inserite sono quelle predefinite di sistema.
      * @pre username != null && password != null
      */
     public boolean isDefaultCredentials(String username, String password) {
@@ -51,9 +50,7 @@ public class AuthService {
             && ApplicationState.DEFAULT_PASSWORD.equals(password);
     }
 
-    /**
-     * @return true if the given username is already taken by any configurator
-     */
+    /** @return true se lo username è già usato da un altro configuratore */
     public boolean isUsernameTaken(String username) {
         assert username != null;
         return state.getConfigurators().stream()
@@ -65,35 +62,36 @@ public class AuthService {
     // ----------------------------------------------------------------
 
     /**
-     * Creates a new Configurator entry with default credentials and marks it
-     * as pending first-login registration.
+     * Crea un nuovo configuratore pendente che dovrà completare la registrazione.
      *
-     * Called only during the very first launch, before personal credentials
-     * have been chosen.
+     * CORREZIONE: rimosso il vincolo isFirstEverLaunch().
+     * Le credenziali predefinite possono essere usate in qualsiasi momento
+     * per aggiungere un nuovo configuratore al gruppo, non solo al primo avvio.
      *
-     * @return the newly created (unregistered) Configurator
-     * @pre isFirstEverLaunch()
+     * @return il nuovo Configurator con firstLogin=true
+     * @post il configuratore è in ApplicationState ma ha ancora firstLogin=true
      * @post !isFirstEverLaunch()
      */
     public Configurator createPendingConfigurator() {
-        assert isFirstEverLaunch() : "Pre-condition: no configurator must exist yet";
+        // Username temporaneo univoco — verrà sostituito durante la registrazione
+        String tempUsername = ApplicationState.DEFAULT_USERNAME
+                + "_pending_" + System.currentTimeMillis();
+
         Configurator c = new Configurator(
-                ApplicationState.DEFAULT_USERNAME,
+                tempUsername,
                 ApplicationState.DEFAULT_PASSWORD);
-        state.getConfigurators().add(c);
-        assert !isFirstEverLaunch() : "Post-condition: at least one configurator now exists";
+        state.addConfigurator(c);
+
+        assert !isFirstEverLaunch();
         return c;
     }
 
     /**
-     * Completes registration by assigning personal credentials to a pending
-     * configurator. Enforces username uniqueness across the whole system.
+     * Completa la registrazione assegnando credenziali personali.
+     * Verifica l'unicità dello username tra tutti i configuratori esistenti
+     * (escludendo il configuratore pending corrente).
      *
-     * @param configurator the pending configurator (isFirstLogin() == true)
-     * @param newUsername  desired personal username
-     * @param newPassword  desired personal password
-     * @throws DuplicateUsernameException if newUsername is already taken by
-     *                                    another configurator
+     * @throws DuplicateUsernameException se newUsername è già usato
      * @pre configurator != null && configurator.isFirstLogin()
      * @pre newUsername != null && !newUsername.isBlank()
      * @pre newPassword != null && !newPassword.isBlank()
@@ -108,7 +106,7 @@ public class AuthService {
         assert newUsername != null && !newUsername.isBlank();
         assert newPassword != null && !newPassword.isBlank();
 
-        // Uniqueness check: exclude the current placeholder entry
+        // Unicità: esclude il configuratore pending corrente dal controllo
         boolean taken = state.getConfigurators().stream()
                 .filter(c -> c != configurator)
                 .anyMatch(c -> c.getUsername().equalsIgnoreCase(newUsername));
@@ -117,18 +115,14 @@ public class AuthService {
 
         configurator.setPersonalCredentials(newUsername, newPassword);
 
-        assert !configurator.isFirstLogin() : "Post-condition: registration must be complete";
+        assert !configurator.isFirstLogin();
     }
 
     /**
-     * Authenticates a configurator by username + password.
+     * Autentica un configuratore con username e password.
      *
-     * @param username supplied username
-     * @param password supplied password
-     * @return the matching Configurator
-     * @throws AuthenticationException if no match is found
+     * @throws AuthenticationException se nessun configuratore corrisponde
      * @pre username != null && password != null
-     * @post return value != null && return value authenticates with the given credentials
      */
     public Configurator authenticate(String username, String password)
             throws AuthenticationException {

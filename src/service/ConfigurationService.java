@@ -6,11 +6,14 @@ import model.*;
 import java.util.List;
 
 /**
- * ConfigurationService — owns the one-time initialisation of base fields.
+ * ConfigurationService — gestisce l'inizializzazione una-tantum dei campi base.
  *
- * Base fields are defined by the specification (8 fixed fields) and must be
- * set exactly once for the entire lifetime of the application.
- * After initialisation they are immutable.
+ * I campi base sono definiti dalla sezione GENERALITÀ della specifica:
+ *   Titolo, Numero di partecipanti, Termine ultimo di iscrizione,
+ *   Luogo, Data, Ora, Quota individuale, Data conclusiva.
+ *
+ * Vengono inizializzati automaticamente al primo avvio e mostrati
+ * al configuratore per conferma. Una volta creati sono immutabili.
  *
  * Invariant: state != null
  */
@@ -18,12 +21,9 @@ public class ConfigurationService {
 
     private final ApplicationState state;
 
-    /**
-     * @param state the application state (non-null)
-     * @pre state != null
-     */
+    /** @pre state != null */
     public ConfigurationService(ApplicationState state) {
-        assert state != null : "ConfigurationService requires a non-null ApplicationState";
+        assert state != null;
         this.state = state;
     }
 
@@ -31,12 +31,12 @@ public class ConfigurationService {
     // Queries
     // ----------------------------------------------------------------
 
-    /** @return true if base fields have already been initialised */
+    /** @return true se i campi base sono già stati inizializzati */
     public boolean areBaseFieldsInitialised() {
         return state.isBaseFieldsLocked();
     }
 
-    /** @return the (unmodifiable) list of base fields */
+    /** @return lista immutabile dei campi base */
     public List<BaseField> getBaseFields() {
         return state.getBaseFields();
     }
@@ -46,37 +46,30 @@ public class ConfigurationService {
     // ----------------------------------------------------------------
 
     /**
-     * Initialises the eight predefined base fields and locks them permanently.
-     * Must be called exactly once, during the very first session.
+     * Inizializza gli 8 campi base definiti dalla specifica e li blocca.
      *
-     * The eight base fields (from the specification):
-     *   Titolo, Numero di partecipanti, Termine ultimo di iscrizione,
-     *   Luogo, Data, Ora, Quota individuale, Data conclusiva.
+     * Deve essere chiamato esattamente una volta, durante il primo avvio.
+     * Il Controller mostra i campi al configuratore PRIMA di chiamare
+     * questo metodo, in modo che l'utente sappia cosa sta per essere fissato.
      *
-     * @throws BaseFieldsAlreadyInitializedException if called more than once
+     * @throws BaseFieldsAlreadyInitializedException se chiamato più volte
      * @pre !areBaseFieldsInitialised()
      * @post areBaseFieldsInitialised()
      * @post getBaseFields().size() == 8
      */
-    public void initBaseFields() throws BaseFieldsAlreadyInitializedException {
+    public void initBaseFields(List<BaseField> fields)
+            throws BaseFieldsAlreadyInitializedException {
+
+        assert fields != null && !fields.isEmpty() : "fields must be non-null and non-empty";
+
         if (areBaseFieldsInitialised()) {
             throw new BaseFieldsAlreadyInitializedException();
         }
 
-        List<BaseField> mutable = state.getBaseFieldsMutable();
-        mutable.clear();
-        mutable.add(new BaseField("Titolo",                          FieldType.STRING));
-        mutable.add(new BaseField("Numero di partecipanti",          FieldType.INTEGER));
-        mutable.add(new BaseField("Termine ultimo di iscrizione",    FieldType.DATE));
-        mutable.add(new BaseField("Luogo",                           FieldType.STRING));
-        mutable.add(new BaseField("Data",                            FieldType.DATE));
-        mutable.add(new BaseField("Ora",                             FieldType.TIME));
-        mutable.add(new BaseField("Quota individuale",               FieldType.DECIMAL));
-        mutable.add(new BaseField("Data conclusiva",                 FieldType.DATE));
-
+        state.getBaseFieldsMutable().addAll(fields);
         state.setBaseFieldsLocked(true);
 
-        assert areBaseFieldsInitialised()      : "Post-condition: must be locked";
-        assert getBaseFields().size() == 8     : "Post-condition: exactly 8 base fields";
+        assert areBaseFieldsInitialised();
+        assert getBaseFields().size() == fields.size();
     }
 }

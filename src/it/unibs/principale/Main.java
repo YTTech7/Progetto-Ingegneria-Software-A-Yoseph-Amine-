@@ -8,24 +8,7 @@ import view.ConsoleUI;
 
 import java.io.IOException;
 
-/**
- * Main — wires all layers together and starts the application.
- *
- * Dependency graph (all arrows point downward):
- *
- *   Main
- *    └─ ConfiguratorController
- *         ├─ AuthService          ──┐
- *         ├─ ConfigurationService ──┤──> ApplicationState
- *         ├─ FieldService         ──┤
- *         ├─ CategoryService      ──┘
- *         ├─ PersistenceManager   ──>  disk (appstate.dat)
- *         └─ ConsoleUI            ──>  System.in / System.out
- *
- * ApplicationState is created/loaded ONCE here and injected into every Service.
- * No class other than Main and PersistenceManager ever calls
- * ApplicationState.getInstance() or ApplicationState.setInstance().
- */
+
 public class Main {
 
     public static void main(String[] args) {
@@ -70,10 +53,20 @@ public class Main {
                 continue;
             }
 
-            // Ensure base fields are initialised (idempotent)
-            controller.initBaseFieldsIfNeeded();
+         // Loop bloccante: il programma non può proseguire senza campi base.
+            // Se il configuratore annulla, l'operazione si ripete finché
+            // non viene completata o non sceglie di uscire.
+            while (!controller.initBaseFieldsIfNeeded()) {
+                ui.printError("Non è possibile avviare il programma senza definire i campi base.");
+                if (!ui.readConfirm("Vuoi definirli ora?")) {
+                    controller.logout();
+                    running = false;
+                    break;
+                }
+            }
+            if (!running) break;
 
-            // ---- Session menu ----
+            // ---- Session menu ---- //
             boolean sessionActive = true;
             while (sessionActive) {
                 ui.printTitle("Menu Principale — Configuratore: "

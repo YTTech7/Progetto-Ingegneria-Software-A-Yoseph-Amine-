@@ -42,14 +42,23 @@ public class ApplicationState implements Serializable {
     // Configurators — raw list access
     // ----------------------------------------------------------------
 
-    /** Returns a live (modifiable) view — only Services should mutate it. */
-    public List<Configurator> getConfigurators() { return configurators; }
-
-    /** Read-only snapshot for everyone else. */
-    public List<Configurator> getConfiguratorsView() {
+    /**
+     * Vista immutabile dei configuratori.
+     * Per aggiungere un configuratore usare addConfigurator().
+     */
+    public List<Configurator> getConfigurators() {
         return Collections.unmodifiableList(configurators);
     }
 
+    /**
+     * Aggiunge un configuratore alla lista.
+     * Usato esclusivamente da AuthService.
+     * @pre configurator != null
+     */
+    public void addConfigurator(Configurator configurator) {
+        assert configurator != null;
+        configurators.add(configurator);
+    }
     // ----------------------------------------------------------------
     // Base fields
     // ----------------------------------------------------------------

@@ -5,9 +5,9 @@ import model.FieldType;
 import java.util.Scanner;
 
 /**
- * Utility class providing formatted console output and safe input reading.
- * Centralises all I/O so that replacing the console with a GUI in future
- * versions requires modifying only this layer.
+ * Classe che fornisce output formattato sulla console e lettura sicura dell'input.
+ * Centralizza tutte le operazioni di I/O in modo che, in future versioni, la sostituzione
+ * ella console con un'interfaccia grafica richieda la modifica solo di questo livello.
  */
 public class ConsoleUI {
 
